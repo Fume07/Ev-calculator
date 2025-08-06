@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+  <meta charset="UTF-8">
+  <title>EV mot Edge-justert Bookmaker Kalkulator</title>
+  <style>
+    body { max-width: 620px; margin: 24px auto; font-family: sans-serif; background:#f7f7fb; }
+    h1 { color: #295; text-align: center; }
+    label { font-weight: bold; }
+    .inputrow { margin:13px 0; }
+    input[type=number] { width: 85px; padding: 5px; font-size: 15px;}
+    .calcbox { background:#fff; border-radius:13px; padding:22px; margin:0 0 24px 0; box-shadow: 0 2px 7px #ddd;}
+    #result { margin:18px 0 8px 0; padding:17px; border-radius:9px; font-size:17px;}
+    .positive { background: #d4edda; border-left: 7px solid #28a745; }
+    .negative { background: #f8d7da; border-left: 7px solid #dc3545; }
+    .highlight { font-size:18px; font-weight:bold; }
+    .formula { color: #447; background: #eef4fa; padding: 5px 6px; border-radius: 4px; display: inline-block; }
+    .explain { color: #666; font-size:13px; }
+  </style>
+</head>
+<body>
+  <h1>EV-kalkulator:<br>Polymarket mot Edge-justert Bookmaker</h1>
+  <div class="calcbox">
+    <div class="inputrow">
+      <label>Bookmaker-odds: </label>
+      <input type="number" id="odds_book" value="1.735" step="0.001" min="1.01">
+      <span class="explain">Vanlig desimalodds (eks: Pinnacle)</span>
+    </div>
+    <div class="inputrow">
+      <label>Payout-prosent (%): </label>
+      <input type="number" id="payout" value="95" min="80" max="99" step="0.1">
+      <span class="explain">Bookmakerens utbetalingsprosent</span>
+    </div>
+    <hr>
+    <div class="inputrow">
+      <label>Polymarket-pris (¢): </label>
+      <input type="number" id="polyprice" value="56" min="1" max="99" step="0.1">
+      <span class="explain">(eks: 56 = $0.56 = 56%)</span>
+    </div>
+    <div class="inputrow">
+      <label>Innsats (USD): </label>
+      <input type="number" id="stake" value="100" min="1">
+    </div>
+    <button onclick="beregn_ev()" style="margin-top:15px;">Beregn!</button>
+    <div id="result"></div>
+    <div class="explain">
+      <b>Metode:</b> Kalkulatoren sammenligner Polymarket-pris med "fair" sannsynlighet ut fra edge-justert odds fra bookmaker, og regner ut EV for betten. Edge-justert odds = bookmakerodds ÷ payout-prosent.<br>
+      EV-formel: <span class="formula">EV = (true prob - PM-pris) × innsats</span>
+    </div>
+  </div>
+
+  <script>
+    function beregn_ev() {
+      // Input
+      let oddsB = Number(document.getElementById('odds_book').value);
+      let payout = Number(document.getElementById('payout').value)/100;
+      let pm_price = Number(document.getElementById('polyprice').value)/100;
+      let stake = Number(document.getElementById('stake').value);
+
+      // Edge-justert odds og sannsynlighet
+      let edge_odds = oddsB / payout;
+      let trueprob = 1 / edge_odds;
+      let edge_pct = ((edge_odds-oddsB)/oddsB)*100;
+
+      // EV-formel: EV = (sannsynlighet - pris) x innsats
+      let ev = (trueprob - pm_price) * stake;
+      let signo = ev > 0 ? "+" : "";
+
+      // Uttekst
+      let res = `<b>Edge-justert odds fra bookmaker:</b> ${edge_odds.toFixed(3)} <br>`;
+      res += `Implisitt sannsynlighet: <b>${(trueprob*100).toFixed(2)}%</b> <br>`;
+      res += `Edge vs opprinnelig odds: <b>${signo}${(edge_odds-oddsB).toFixed(3)} (${signo}${edge_pct.toFixed(2)}%)</b><br><hr>`;
+      res += `<b>Polymarket-pris:</b> ${(pm_price*100).toFixed(2)}¢ (${pm_price}) <br>`;
+      res += `<b>EV-beregning:</b> <span class="formula">EV = (true prob - pris) × innsats = (${(trueprob*100).toFixed(2)}% - ${(pm_price*100).toFixed(2)}%) × ${stake}</span><br>`;
+      res += `<b>EV:</b> <span class="highlight">${signo}${ev.toFixed(2)} USD</span>`;
+      res = `<div class="${ev>0?'positive':(ev<0?'negative':'')}">${res}</div>`;
+      res += `<div class="explain" style="margin-top:11px;">`
+      res += `EV er <b>positiv</b> når sannsynligheten fra edge-odds er høyere enn Polymarket-prisen.`;
+      res += ` <br>Jo mer under "fair" nivå du får kjøpt, jo høyere EV!</div>`;
+      document.getElementById('result').innerHTML = res;
+    }
+    beregn_ev();
+    document.querySelectorAll('input[type=number]').forEach(
+      n => n.addEventListener('input',beregn_ev)
+    );
+  </script>
+</body>
+</html>
