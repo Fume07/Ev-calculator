@@ -182,27 +182,6 @@
             const polymarketPriceCents = parseFloat(document.getElementById('polymarketPrice').value);
             const betAmount = parseFloat(document.getElementById('betAmount').value);
 
-            // Valider input
-            if (!bookmakerOdds || !payoutPercent || !polymarketPriceCents || !betAmount) {
-                alert('Vennligst fyll ut alle feltene');
-                return;
-            }
-
-            if (bookmakerOdds <= 1) {
-                alert('Bookmaker odds må være større enn 1.0');
-                return;
-            }
-
-            if (payoutPercent <= 0 || payoutPercent > 100) {
-                alert('Payout prosent må være mellom 0 og 100');
-                return;
-            }
-
-            if (polymarketPriceCents <= 0 || polymarketPriceCents >= 100) {
-                alert('Polymarket pris må være mellom 1 og 99 cent');
-                return;
-            }
-
             // Konverter Polymarket pris til dollar
             const polymarketPrice = polymarketPriceCents / 100;
 
