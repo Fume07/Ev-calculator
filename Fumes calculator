@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Korrekt Polymarket EV-Kalkulator</title>
+    <title>Forbedret Polymarket EV-Kalkulator med Longshot Bias Korreksjon</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            max-width: 800px;
+            max-width: 900px;
             margin: 0 auto;
             padding: 20px;
             background-color: #f5f5f5;
@@ -32,10 +32,10 @@
             font-weight: bold;
             color: #34495e;
         }
-        input, button {
+        input, button, select {
             font-size: 16px;
         }
-        input[type="text"] {
+        input[type="text"], select {
             width: 100%;
             padding: 10px;
             border: 2px solid #ddd;
@@ -43,7 +43,7 @@
             font-size: 16px;
             box-sizing: border-box;
         }
-        input[type="text"]:focus {
+        input[type="text"]:focus, select:focus {
             border-color: #3498db;
             outline: none;
         }
@@ -85,6 +85,23 @@
             background-color: #fff3cd;
             color: #856404;
         }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: 1px solid #ffeaa7;
+        }
+        .longshot-warning {
+            background-color: #ffe6e6;
+            color: #cc0000;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: 2px solid #ff9999;
+            font-weight: bold;
+        }
         .explanation {
             background-color: #e8f4fd;
             padding: 15px;
@@ -99,26 +116,50 @@
             font-family: monospace;
             margin: 10px 0;
         }
-        .warning {
-            background-color: #fff3cd;
-            color: #856404;
-            padding: 10px;
+        .kelly-section {
+            background-color: #e8f5e8;
+            padding: 15px;
             border-radius: 5px;
             margin: 10px 0;
-            border: 1px solid #ffeaa7;
+            border-left: 4px solid #27ae60;
+        }
+        .bias-section {
+            background-color: #fff0e6;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border-left: 4px solid #ff9500;
+        }
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 15px 0;
+        }
+        .comparison-table th, .comparison-table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+        .comparison-table th {
+            background-color: #f2f2f2;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>📊 Korrekt Polymarket EV-Kalkulator</h1>
+        <h1>📊 Forbedret Polymarket EV-Kalkulator</h1>
+        <h2 style="text-align: center; color: #e74c3c;">🎯 Med Longshot Bias Korreksjon & Kelly-kriteriet</h2>
+        
         <div class="explanation">
             <h3>📝 Hvordan bruker jeg kalkulatoren?</h3>
             <p><strong>Steg 1:</strong> Finn bookmaker odds (f.eks. Pinnacle) for samme utfall</p>
             <p><strong>Steg 2:</strong> Finn bookmakerens payout-prosent (vanligvis 91-95%)</p>
             <p><strong>Steg 3:</strong> Noter Polymarket-prisen (i cent, f.eks. 56¢)</p>
             <p><strong>Steg 4:</strong> Bestem hvor mye du vil satse</p>
+            <p><strong>Steg 5:</strong> Velg bias-korreksjon for longshots</p>
         </div>
+
         <form id="evCalculator" autocomplete="off">
             <div class="input-group">
                 <label for="bookmakerOdds">Bookmaker Odds (desimal, f.eks. 2.0):</label>
@@ -136,103 +177,295 @@
                 <label for="betAmount">Innsats (USD):</label>
                 <input type="text" id="betAmount" placeholder="100">
             </div>
-            <button type="button" class="calculate-btn" onclick="calculateEV()">🧮 Beregn EV</button>
+            <div class="input-group">
+                <label for="biasCorrection">Longshot Bias Korreksjon:</label>
+                <select id="biasCorrection">
+                    <option value="none">Ingen korreksjon</option>
+                    <option value="conservative" selected>Konservativ (30% reduksjon for odds >5)</option>
+                    <option value="moderate">Moderat (20% reduksjon for odds >5)</option>
+                    <option value="aggressive">Aggressiv (50% reduksjon for odds >5)</option>
+                    <option value="custom">Tilpasset korreksjon</option>
+                </select>
+            </div>
+            <div class="input-group" id="customBiasGroup" style="display:none;">
+                <label for="customBiasReduction">Tilpasset reduksjon for longshots (%):</label>
+                <input type="text" id="customBiasReduction" placeholder="30">
+            </div>
+            <button type="button" class="calculate-btn" onclick="calculateEV()">🧮 Beregn EV med Bias-korreksjon</button>
         </form>
+
         <div id="results" class="results" style="display:none;">
             <h3>📈 Resultater:</h3>
-            <div id="edgeAdjustedOdds" class="result-item"></div>
-            <div id="impliedProbability" class="result-item"></div>
-            <div id="polymarketPriceDisplay" class="result-item"></div>
-            <div id="numberOfShares" class="result-item"></div>
-            <div id="potentialWin" class="result-item"></div>
-            <div id="potentialLoss" class="result-item"></div>
-            <div id="expectedValue" class="result-item"></div>
-            <div id="evPercentage" class="result-item"></div>
-            <div id="recommendation" class="result-item"></div>
-        </div>
-        <div class="explanation">
-            <h3>🧠 Formel Forklaring:</h3>
-            <div class="formula">
-                EV = (Antall Shares) × (Din Sannsynlighet - Polymarket Pris i dollar)
+            
+            <div class="comparison-table">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Metode</th>
+                            <th>Sannsynlighet</th>
+                            <th>EV ($)</th>
+                            <th>EV (%)</th>
+                            <th>Anbefaling</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr id="originalRow"></tr>
+                        <tr id="biasAdjustedRow"></tr>
+                    </tbody>
+                </table>
             </div>
-            <p><strong>Hvor:</strong></p>
-            <ul>
-                <li><strong>Antall Shares:</strong> Innsats ÷ (Polymarket Pris ÷ 100)</li>
-                <li><strong>Din Sannsynlighet:</strong> 1 ÷ Edge-justerte Odds</li>
-                <li><strong>Edge-justerte Odds:</strong> Bookmaker Odds ÷ (Payout % ÷ 100)</li>
-            </ul>
+
+            <div id="longshotWarning" class="longshot-warning" style="display:none;"></div>
+
+            <div class="kelly-section" id="kellySection" style="display:none;">
+                <h4>🎯 Kelly-kriteriet Anbefaling:</h4>
+                <div id="kellyRecommendation"></div>
+            </div>
+
+            <div id="basicResults">
+                <div id="edgeAdjustedOdds" class="result-item"></div>
+                <div id="impliedProbability" class="result-item"></div>
+                <div id="polymarketPriceDisplay" class="result-item"></div>
+                <div id="numberOfShares" class="result-item"></div>
+                <div id="potentialWin" class="result-item"></div>
+                <div id="potentialLoss" class="result-item"></div>
+                <div id="recommendation" class="result-item"></div>
+            </div>
         </div>
+
+        <div class="explanation">
+            <h3>🧠 Longshot Bias Korreksjon:</h3>
+            <p>Kalkulatoren justerer automatisk sannsynligheten for utfall med høye odds (longshots) for å unngå systematisk overvurdering av EV. Dette er basert på historisk data som viser at longshots ofte er overvurdert i betting-markeder.</p>
+            
+            <div class="bias-section">
+                <h4>🎲 Bias-korreksjon nivåer:</h4>
+                <ul>
+                    <li><strong>Konservativ (30%):</strong> Reduserer sannsynlighet med 30% for odds over 5.0</li>
+                    <li><strong>Moderat (20%):</strong> Reduserer sannsynlighet med 20% for odds over 5.0</li>
+                    <li><strong>Aggressiv (50%):</strong> Reduserer sannsynlighet med 50% for odds over 5.0</li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="explanation">
+            <h3>🧠 Kelly-kriteriet:</h3>
+            <div class="formula">
+                Kelly % = (bp - q) / b
+                <br>Hvor: b = odds-1, p = sannsynlighet for gevinst, q = sannsynlighet for tap
+            </div>
+            <p>Kelly-kriteriet anbefaler optimal innsatsstørrelse basert på EV og risiko for å maksimere langsiktig vekst.</p>
+        </div>
+
         <div class="warning">
-            <strong>⚠️ Viktig:</strong> Kalkulatoren antar at bookmaker-oddsen er \"sann\" sannsynlighet etter edge-justering.
+            <strong>⚠️ Viktig:</strong> Kalkulatoren bruker longshot bias-korreksjon for å gi mer realistiske EV-estimater. Bruk alltid konservative innsatser på longshots.
         </div>
     </div>
+
     <script>
+        // Vis/skjul tilpasset bias-innstilling
+        document.getElementById('biasCorrection').addEventListener('change', function() {
+            const customGroup = document.getElementById('customBiasGroup');
+            if (this.value === 'custom') {
+                customGroup.style.display = 'block';
+            } else {
+                customGroup.style.display = 'none';
+            }
+        });
+
         function val(v) {
             v = v.replace(',', '.'); // Støtt både , og . som desimaltegn
             return parseFloat(v);
         }
 
+        function getBiasReduction(odds, biasType, customReduction = 30) {
+            if (odds <= 5.0) return 0; // Ingen korreksjon for odds under 5.0
+            
+            switch(biasType) {
+                case 'none': return 0;
+                case 'conservative': return 30;
+                case 'moderate': return 20;
+                case 'aggressive': return 50;
+                case 'custom': return customReduction;
+                default: return 30;
+            }
+        }
+
+        function calculateKelly(probability, odds, bankroll) {
+            const b = odds - 1; // Net odds
+            const p = probability; // Win probability
+            const q = 1 - p; // Lose probability
+            
+            const kelly = (b * p - q) / b;
+            return Math.max(0, kelly); // Kelly should not be negative
+        }
+
         function calculateEV() {
-            // Hent inputverdier, alltid fri flyt og stille
+            // Hent inputverdier
             const bookmakerOdds = val(document.getElementById('bookmakerOdds').value);
             const payoutPercent = val(document.getElementById('payoutPercent').value);
             const polymarketPriceCents = val(document.getElementById('polymarketPrice').value);
             const betAmount = val(document.getElementById('betAmount').value);
+            const biasCorrection = document.getElementById('biasCorrection').value;
+            const customBiasReduction = val(document.getElementById('customBiasReduction').value) || 30;
 
-            // Om noe ikke kan regnes, vis blanke resultater -- ingen varsler
+            // Valider input
             if (!bookmakerOdds || !payoutPercent || !polymarketPriceCents || !betAmount) {
                 document.getElementById('results').style.display = 'none';
                 return;
             }
-            // Ingen sperrer – kun du må trykke knappen
+
+            // Grunnleggende beregninger
             const polymarketPrice = polymarketPriceCents / 100;
             const edgeAdjustedOdds = bookmakerOdds / (payoutPercent / 100);
-            const impliedProbability = 1 / edgeAdjustedOdds;
+            const originalProbability = 1 / edgeAdjustedOdds;
+            
+            // Bias-korreksjon
+            const biasReduction = getBiasReduction(edgeAdjustedOdds, biasCorrection, customBiasReduction);
+            const biasAdjustedProbability = originalProbability * (1 - biasReduction / 100);
+            
+            // Beregninger for original og bias-justert
             const numberOfShares = betAmount / polymarketPrice;
             const potentialWinAmount = numberOfShares * 1.00;
             const potentialProfitAmount = potentialWinAmount - betAmount;
-            const potentialLossAmount = betAmount;
-            const expectedValue = numberOfShares * (impliedProbability - polymarketPrice);
-            const evPercentage = (expectedValue / betAmount) * 100;
+            
+            // Original EV
+            const originalEV = numberOfShares * (originalProbability - polymarketPrice);
+            const originalEVPercent = (originalEV / betAmount) * 100;
+            
+            // Bias-justert EV
+            const biasAdjustedEV = numberOfShares * (biasAdjustedProbability - polymarketPrice);
+            const biasAdjustedEVPercent = (biasAdjustedEV / betAmount) * 100;
 
+            // Kelly-kriteriet (bruk bias-justert sannsynlighet)
+            const kellyPercent = calculateKelly(biasAdjustedProbability, edgeAdjustedOdds, 1000) * 100; // Anta $1000 bankroll
+            const kellyRecommendedBet = (kellyPercent / 100) * 1000; // Kelly anbefalt innsats
+
+            // Vis resultater
+            displayResults(edgeAdjustedOdds, originalProbability, biasAdjustedProbability, 
+                          polymarketPriceCents, polymarketPrice, numberOfShares, 
+                          potentialProfitAmount, potentialWinAmount, betAmount,
+                          originalEV, originalEVPercent, biasAdjustedEV, biasAdjustedEVPercent,
+                          kellyPercent, kellyRecommendedBet, biasReduction);
+        }
+
+        function displayResults(edgeAdjustedOdds, originalProb, biasAdjustedProb, 
+                              priceCents, priceDecimal, shares, profit, totalWin, betAmount,
+                              originalEV, originalEVPercent, biasEV, biasEVPercent,
+                              kellyPercent, kellyBet, biasReduction) {
+            
+            // Sammenligningstabellen
+            const originalRow = document.getElementById('originalRow');
+            const biasRow = document.getElementById('biasAdjustedRow');
+            
+            originalRow.innerHTML = `
+                <td><strong>Original</strong></td>
+                <td>${(originalProb * 100).toFixed(2)}%</td>
+                <td class="${originalEV > 0 ? 'positive' : 'negative'}">$${originalEV.toFixed(2)}</td>
+                <td class="${originalEV > 0 ? 'positive' : 'negative'}">${originalEVPercent.toFixed(2)}%</td>
+                <td>${getRecommendationText(originalEVPercent, false)}</td>
+            `;
+            
+            biasRow.innerHTML = `
+                <td><strong>Bias-justert</strong></td>
+                <td>${(biasAdjustedProb * 100).toFixed(2)}%</td>
+                <td class="${biasEV > 0 ? 'positive' : 'negative'}">$${biasEV.toFixed(2)}</td>
+                <td class="${biasEV > 0 ? 'positive' : 'negative'}">${biasEVPercent.toFixed(2)}%</td>
+                <td>${getRecommendationText(biasEVPercent, true)}</td>
+            `;
+
+            // Longshot advarsel
+            const longshotWarning = document.getElementById('longshotWarning');
+            if (edgeAdjustedOdds > 5.0) {
+                longshotWarning.style.display = 'block';
+                longshotWarning.innerHTML = `
+                    🚨 <strong>LONGSHOT ADVARSEL:</strong> Dette er et høy-odds bet (${edgeAdjustedOdds.toFixed(2)}x). 
+                    Sannsynligheten er redusert med ${biasReduction}% for å kompensere for typisk overvurdering av longshots. 
+                    Vær ekstra forsiktig med innsatsstørrelsen!
+                `;
+            } else {
+                longshotWarning.style.display = 'none';
+            }
+
+            // Kelly-kriteriet
+            const kellySection = document.getElementById('kellySection');
+            const kellyRecommendation = document.getElementById('kellyRecommendation');
+            
+            if (biasEV > 0) {
+                kellySection.style.display = 'block';
+                let kellyAdvice = '';
+                
+                if (kellyPercent < 1) {
+                    kellyAdvice = `Kelly anbefaler å satse ${kellyPercent.toFixed(2)}% av bankroll (ca. $${kellyBet.toFixed(2)} av $1000 bankroll). Dette er et lavrisiko-bet.`;
+                } else if (kellyPercent < 5) {
+                    kellyAdvice = `Kelly anbefaler å satse ${kellyPercent.toFixed(2)}% av bankroll (ca. $${kellyBet.toFixed(2)} av $1000 bankroll). Moderat risiko.`;
+                } else if (kellyPercent < 10) {
+                    kellyAdvice = `Kelly anbefaler å satse ${kellyPercent.toFixed(2)}% av bankroll (ca. $${kellyBet.toFixed(2)} av $1000 bankroll). Høyere risiko - vurder å redusere innsats.`;
+                } else {
+                    kellyAdvice = `Kelly anbefaler ${kellyPercent.toFixed(2)}% av bankroll, men dette er høy risiko. Vurder maksimalt 5-10% av bankroll for sikkerhets skyld.`;
+                }
+                
+                const currentBetPercent = (betAmount / 1000) * 100;
+                if (currentBetPercent > kellyPercent * 1.5) {
+                    kellyAdvice += `<br><strong>⚠️ Din innsats (${currentBetPercent.toFixed(1)}% av $1000) er høyere enn Kelly anbefaler!</strong>`;
+                }
+                
+                kellyRecommendation.innerHTML = kellyAdvice;
+            } else {
+                kellySection.style.display = 'none';
+            }
+
+            // Grunnleggende resultater
             document.getElementById('edgeAdjustedOdds').innerHTML = `<strong>Edge-justerte Odds:</strong> ${edgeAdjustedOdds.toFixed(3)}`;
-            document.getElementById('impliedProbability').innerHTML = `<strong>Implisitt Sannsynlighet:</strong> ${(impliedProbability * 100).toFixed(2)}%`;
-            document.getElementById('polymarketPriceDisplay').innerHTML = `<strong>Polymarket Pris:</strong> ${polymarketPriceCents}¢ ($${polymarketPrice.toFixed(2)})`;
-            document.getElementById('numberOfShares').innerHTML = `<strong>Antall Shares:</strong> ${numberOfShares.toFixed(1)}`;
-            document.getElementById('potentialWin').innerHTML = `<strong>Potensiell Gevinst ved Seier:</strong> $${potentialProfitAmount.toFixed(2)} (total utbetaling: $${potentialWinAmount.toFixed(2)})`;
-            document.getElementById('potentialLoss').innerHTML = `<strong>Potensiell Tap:</strong> $${potentialLossAmount.toFixed(2)}`;
-            const evElement = document.getElementById('expectedValue');
-            evElement.innerHTML = `<strong>Expected Value (EV):</strong> $${expectedValue.toFixed(2)}`;
-            if (expectedValue > 0) {
-                evElement.className = 'result-item positive';
-            } else if (expectedValue < 0) {
-                evElement.className = 'result-item negative';
-            } else {
-                evElement.className = 'result-item neutral';
-            }
-            const evPercentElement = document.getElementById('evPercentage');
-            evPercentElement.innerHTML = `<strong>EV som % av innsats:</strong> ${evPercentage.toFixed(2)}%`;
-            evPercentElement.className = expectedValue > 0 ? 'result-item positive' : 
-                                       expectedValue < 0 ? 'result-item negative' : 'result-item neutral';
+            document.getElementById('impliedProbability').innerHTML = `<strong>Original Sannsynlighet:</strong> ${(originalProb * 100).toFixed(2)}% → <strong>Bias-justert:</strong> ${(biasAdjustedProb * 100).toFixed(2)}%`;
+            document.getElementById('polymarketPriceDisplay').innerHTML = `<strong>Polymarket Pris:</strong> ${priceCents}¢ ($${priceDecimal.toFixed(2)})`;
+            document.getElementById('numberOfShares').innerHTML = `<strong>Antall Shares:</strong> ${shares.toFixed(1)}`;
+            document.getElementById('potentialWin').innerHTML = `<strong>Potensiell Gevinst ved Seier:</strong> $${profit.toFixed(2)} (total utbetaling: $${totalWin.toFixed(2)})`;
+            document.getElementById('potentialLoss').innerHTML = `<strong>Potensiell Tap:</strong> $${betAmount.toFixed(2)}`;
+
+            // Hovedanbefaling basert på bias-justert EV
             const recommendationElement = document.getElementById('recommendation');
-            let recommendationText = '';
-            let recommendationClass = '';
-            if (expectedValue > betAmount * 0.05) {
-                recommendationText = '🟢 <strong>Anbefaling:</strong> Sterkt positivt EV! Dette er et godt bet.';
-                recommendationClass = 'result-item positive';
-            } else if (expectedValue > 0) {
-                recommendationText = '🟡 <strong>Anbefaling:</strong> Positivt EV, men relativt lavt. Vurder innsatsstørrelse.';
-                recommendationClass = 'result-item neutral';
-            } else if (expectedValue > -betAmount * 0.02) {
-                recommendationText = '🟡 <strong>Anbefaling:</strong> Nær break-even. Vurder om det er verdt risikoen.';
-                recommendationClass = 'result-item neutral';
-            } else {
-                recommendationText = '🔴 <strong>Anbefaling:</strong> Negativt EV. Ikke anbefalt å plassere dette bettet.';
-                recommendationClass = 'result-item negative';
-            }
+            let recommendationText = getDetailedRecommendation(biasEVPercent, edgeAdjustedOdds > 5.0);
+            let recommendationClass = biasEV > 0 ? 'result-item positive' : 'result-item negative';
+            
             recommendationElement.innerHTML = recommendationText;
             recommendationElement.className = recommendationClass;
+
             document.getElementById('results').style.display = 'block';
+        }
+
+        function getRecommendationText(evPercent, isBiasAdjusted) {
+            if (evPercent > 5) return '🟢 Sterkt positivt';
+            if (evPercent > 0) return '🟡 Positivt';
+            if (evPercent > -2) return '🟡 Nær break-even';
+            return '🔴 Negativt';
+        }
+
+        function getDetailedRecommendation(evPercent, isLongshot) {
+            let recommendation = '';
+            
+            if (evPercent > 5) {
+                recommendation = '🟢 <strong>Anbefaling:</strong> Sterkt positivt bias-justert EV! ';
+                if (isLongshot) {
+                    recommendation += 'Men siden dette er en longshot, vurder konservativ innsats.';
+                } else {
+                    recommendation += 'Dette kan være et godt bet.';
+                }
+            } else if (evPercent > 0) {
+                recommendation = '🟡 <strong>Anbefaling:</strong> Positivt bias-justert EV, men relativt lavt. ';
+                if (isLongshot) {
+                    recommendation += 'Som longshot bør du være ekstra forsiktig med innsatsstørrelsen.';
+                } else {
+                    recommendation += 'Vurder innsatsstørrelse nøye.';
+                }
+            } else if (evPercent > -2) {
+                recommendation = '🟡 <strong>Anbefaling:</strong> Nær break-even etter bias-justering. ';
+                recommendation += isLongshot ? 'Som longshot er risikoen trolig ikke verdt det.' : 'Vurder om risikoen er verdt det.';
+            } else {
+                recommendation = '🔴 <strong>Anbefaling:</strong> Negativt bias-justert EV. ';
+                recommendation += 'Ikke anbefalt å plassere dette bettet.';
+            }
+            
+            return recommendation;
         }
     </script>
 </body>
