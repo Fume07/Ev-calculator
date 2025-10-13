@@ -2,58 +2,82 @@
 <html lang="no">
 <head>
   <meta charset="UTF-8">
-  <title>Korrekt Polymarket EV-Kalkulator – Netto Gevinst</title>
+  <title>Optimal EV-kalkulator Polymarket</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
-    body { font-family: Arial, sans-serif; background: #f4f7fa; padding: 30px; }
-    .container { background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 3px 12px #dde; max-width: 500px; margin: 0 auto; }
-    h1 { text-align: center; color: #293347; }
+    body { font-family: Arial, sans-serif; background: #f7fbfd; padding: 30px; }
+    .container { background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 16px #dde; max-width: 480px; margin: 0 auto; }
+    h1 { text-align: center; color: #253375; }
     label { display: block; margin: 12px 0 4px; font-weight: bold; }
     input, select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #bbb; box-sizing: border-box; }
-    button { margin-top: 20px; width: 100%; background: #248aff; color: #fff; padding: 14px; border: none; border-radius: 6px; font-size: 17px; font-weight: bold; }
-    .result { background: #f7fbfa; margin-top: 28px; padding: 16px; border-radius: 7px; }
-    .warning { color: #cc0000; font-weight: bold; }
-    .good { color: #218c36; }
+    button { margin-top: 20px; width: 100%; background: #3498db; color: #fff; padding: 14px; border: none; border-radius: 6px; font-size: 17px; font-weight: bold; }
+    .result { background: #f8faff; margin-top: 28px; padding: 18px; border-radius: 7px; }
+    .subtitle { color: #669; font-size: 15px; text-align:center; margin-bottom:16px;}
+    .good { color: #218c36;}
+    .warn { color: #e67e22; font-weight: bold;}
+    .danger { color: #cc0000; font-weight: bold;}
+    .outcome { margin:10px 0 0 0;}
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Nettogevinst EV-kalkulator</h1>
-    <label for="probability">Sannsynlighet for seier (%)</label>
-    <input id="probability" type="number" min="0" max="100" value="20">
-    <label for="price">Markedspris (cent per share)</label>
-    <input id="price" type="number" min="1" max="99" value="20">
-    <label for="bet">Innsats ($)</label>
-    <input id="bet" type="number" min="1" max="100000" value="100">
-    <button onclick="calc()">Beregn Netto EV</button>
+    <h1>Optimal EV-kalkulator Polymarket</h1>
+    <div class="subtitle">Gir deg nøyaktig edge, fair odds, riktig EV og Kelly-staking</div>
+    <label for="fairOdds">Fair Odds (desimal, f.eks. marked uten margin)</label>
+    <input id="fairOdds" type="number" min="1.01" step="0.01" value="5.00">
+    <label for="marketOdds">Markedsodds (desimal, med margin)</label>
+    <input id="marketOdds" type="number" min="1.01" step="0.01" value="6.00">
+    <label for="polyPrice">Polymarket pris (cent per share)</label>
+    <input id="polyPrice" type="number" min="1" max="99" value="16">
+    <label for="stake">Din innsats ($)</label>
+    <input id="stake" type="number" min="1" max="10000" value="100">
+    <label for="bankroll">Bankroll ($)</label>
+    <input id="bankroll" type="number" min="100" value="5000">
+    <button onclick="calc()">Beregn EV og Edge</button>
     <div class="result" id="res"></div>
   </div>
   <script>
     function calc() {
-      const p = parseFloat(document.getElementById('probability').value) / 100;
-      const price = parseFloat(document.getElementById('price').value) / 100;
-      const bet = parseFloat(document.getElementById('bet').value);
+      const fairOdds = parseFloat(document.getElementById('fairOdds').value);
+      const marketOdds = parseFloat(document.getElementById('marketOdds').value);
+      const marketPrice = parseFloat(document.getElementById('polyPrice').value) / 100;
+      const stake = parseFloat(document.getElementById('stake').value);
+      const bankroll = parseFloat(document.getElementById('bankroll').value);
 
-      // Antall shares kjøpt
-      const nShares = bet / price;
-      // Total payout om vinner: $1 per share.
-      const payout = nShares * 1.00;
-      // Netto gevinst ved seier: payout minus innsats
-      const netProfitPerWin = payout - bet;
+      // Fair og market probabilitet
+      const fairProb = 1 / fairOdds;
+      const marketProb = 1 / marketOdds;
+      const edge = fairProb - marketPrice;
 
-      // Korrekt EV
-      const EV = (p * netProfitPerWin) - ((1 - p) * bet);
-      const EVpct = (EV / bet) * 100;
+      // Shares og payouts
+      const shares = stake / marketPrice;
+      const payout = shares * 1.00;                  // vinner payout
+      const netProfit = payout - stake;              // netto gevinst per vinner
+      const loss = stake;
 
-      let msg = `<b>EV:</b> $${EV.toFixed(2)} (${EVpct.toFixed(2)} % av innsats)<br>`;
-      msg += `<b>Gevinst hvis seier:</b> $${netProfitPerWin.toFixed(2)}<br>`;
-      msg += `<b>Tap hvis ikke seier:</b> -$${bet.toFixed(2)}<br>`;
-      if(EV > 0) {
-        msg += `<div class="good">Sterkt positiv EV – dette er matematisk lønnsomt over tid ved korrekt sannsynlighet!</div>`;
-      } else {
-        msg += `<span class="warning">Negativ EV – ikke lønnsomt bet i lengden.</span>`;
-      }
-      document.getElementById('res').innerHTML = msg;
+      // EV med fair sannsynlighet
+      const ev = (fairProb * netProfit) - ((1 - fairProb) * loss);
+      const evPct = (ev / stake) * 100;
+
+      // Kelly stake
+      const kellyFrac = (((fairOdds - 1) * fairProb) - (1 - fairProb)) / (fairOdds - 1);
+      const kellyB = Math.max(0, Math.min(kellyFrac, 0.25)) * bankroll;
+
+      let html = `<b>Fair sannsynlighet:</b> ${(fairProb * 100).toFixed(2)}%<br>`;
+      html += `<b>Marked sannsynlighet:</b> ${(marketProb * 100).toFixed(2)}%<br>`;
+      html += `<b>Edge mot marked:</b> ${(edge * 100).toFixed(2)}%<br><hr>`;
+      html += `<b>Antall shares:</b> ${shares.toFixed(2)}<br>`;
+      html += `<b>Netto gevinst om vinner:</b> $${netProfit.toFixed(2)}<br>`;
+      html += `<b>Tap om ikke vinner:</b> -$${loss.toFixed(2)}<br><hr>`;
+      html += `<b>EV:</b> $${ev.toFixed(2)} (${evPct.toFixed(2)}% av innsats)<br>`;
+
+      if(ev > 0) html += `<div class="good outcome">Positiv EV – matematisk lønnsomt over tid!</div>`;
+      else if(evPct > -3) html += `<div class="warn outcome">Nær break-even – vurder risiko og edge.</div>`;
+      else html += `<div class="danger outcome">Negativ EV – ikke lønnsomt bet!</div>`;
+
+      html += `<hr><b>Kelly anbefalt innsats:</b> $${kellyB.toFixed(2)} (${(Math.max(0,Math.min(kellyFrac,0.25))*100).toFixed(2)}% av bankroll)`;
+
+      document.getElementById('res').innerHTML = html;
     }
   </script>
 </body>
