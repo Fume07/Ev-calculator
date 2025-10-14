@@ -1,85 +1,239 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
-  <meta charset="UTF-8">
-  <title>Optimal EV-kalkulator Polymarket</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <style>
-    body { font-family: Arial, sans-serif; background: #f7fbfd; padding: 30px; }
-    .container { background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 16px #dde; max-width: 480px; margin: 0 auto; }
-    h1 { text-align: center; color: #253375; }
-    label { display: block; margin: 12px 0 4px; font-weight: bold; }
-    input, select { width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #bbb; box-sizing: border-box; }
-    button { margin-top: 20px; width: 100%; background: #3498db; color: #fff; padding: 14px; border: none; border-radius: 6px; font-size: 17px; font-weight: bold; }
-    .result { background: #f8faff; margin-top: 28px; padding: 18px; border-radius: 7px; }
-    .subtitle { color: #669; font-size: 15px; text-align:center; margin-bottom:16px;}
-    .good { color: #218c36;}
-    .warn { color: #e67e22; font-weight: bold;}
-    .danger { color: #cc0000; font-weight: bold;}
-    .outcome { margin:10px 0 0 0;}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Korrekt Polymarket EV-Kalkulator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .input-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #34495e;
+        }
+        input, button {
+            font-size: 16px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        input[type="text"]:focus {
+            border-color: #3498db;
+            outline: none;
+        }
+        .calculate-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 20px 0;
+        }
+        .calculate-btn:hover {
+            background-color: #2980b9;
+        }
+        .results {
+            background-color: #ecf0f1;
+            padding: 20px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .result-item {
+            margin: 10px 0;
+            padding: 8px;
+            background-color: white;
+            border-radius: 3px;
+        }
+        .positive {
+            background-color: #d5f4e6;
+            color: #27ae60;
+        }
+        .negative {
+            background-color: #fdf2f2;
+            color: #e74c3c;
+        }
+        .neutral {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .explanation {
+            background-color: #e8f4fd;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+            border-left: 4px solid #3498db;
+        }
+        .formula {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 3px;
+            font-family: monospace;
+            margin: 10px 0;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+            border: 1px solid #ffeaa7;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>Optimal EV-kalkulator Polymarket</h1>
-    <div class="subtitle">Gir deg nøyaktig edge, fair odds, riktig EV og Kelly-staking</div>
-    <label for="fairOdds">Fair Odds (desimal, f.eks. marked uten margin)</label>
-    <input id="fairOdds" type="number" min="1.01" step="0.01" value="5.00">
-    <label for="marketOdds">Markedsodds (desimal, med margin)</label>
-    <input id="marketOdds" type="number" min="1.01" step="0.01" value="6.00">
-    <label for="polyPrice">Polymarket pris (cent per share)</label>
-    <input id="polyPrice" type="number" min="1" max="99" value="16">
-    <label for="stake">Din innsats ($)</label>
-    <input id="stake" type="number" min="1" max="10000" value="100">
-    <label for="bankroll">Bankroll ($)</label>
-    <input id="bankroll" type="number" min="100" value="5000">
-    <button onclick="calc()">Beregn EV og Edge</button>
-    <div class="result" id="res"></div>
-  </div>
-  <script>
-    function calc() {
-      const fairOdds = parseFloat(document.getElementById('fairOdds').value);
-      const marketOdds = parseFloat(document.getElementById('marketOdds').value);
-      const marketPrice = parseFloat(document.getElementById('polyPrice').value) / 100;
-      const stake = parseFloat(document.getElementById('stake').value);
-      const bankroll = parseFloat(document.getElementById('bankroll').value);
+    <div class="container">
+        <h1>ðŸ“Š Korrekt Polymarket EV-Kalkulator</h1>
+        <div class="explanation">
+            <h3>ðŸ“ Hvordan bruker jeg kalkulatoren?</h3>
+            <p><strong>Steg 1:</strong> Finn bookmaker odds (f.eks. Pinnacle) for samme utfall</p>
+            <p><strong>Steg 2:</strong> Finn bookmakerens payout-prosent (vanligvis 91-95%)</p>
+            <p><strong>Steg 3:</strong> Noter Polymarket-prisen (i cent, f.eks. 56Â¢)</p>
+            <p><strong>Steg 4:</strong> Bestem hvor mye du vil satse</p>
+        </div>
+        <form id="evCalculator" autocomplete="off">
+            <div class="input-group">
+                <label for="bookmakerOdds">Bookmaker Odds (desimal, f.eks. 2.0):</label>
+                <input type="text" id="bookmakerOdds" placeholder="2.0">
+            </div>
+            <div class="input-group">
+                <label for="payoutPercent">Bookmaker Payout Prosent (%):</label>
+                <input type="text" id="payoutPercent" placeholder="92.5">
+            </div>
+            <div class="input-group">
+                <label for="polymarketPrice">Polymarket Pris (cent, f.eks. 56 for 56Â¢):</label>
+                <input type="text" id="polymarketPrice" placeholder="56">
+            </div>
+            <div class="input-group">
+                <label for="betAmount">Innsats (USD):</label>
+                <input type="text" id="betAmount" placeholder="100">
+            </div>
+            <button type="button" class="calculate-btn" onclick="calculateEV()">ðŸ§® Beregn EV</button>
+        </form>
+        <div id="results" class="results" style="display:none;">
+            <h3>ðŸ“ˆ Resultater:</h3>
+            <div id="edgeAdjustedOdds" class="result-item"></div>
+            <div id="impliedProbability" class="result-item"></div>
+            <div id="polymarketPriceDisplay" class="result-item"></div>
+            <div id="numberOfShares" class="result-item"></div>
+            <div id="potentialWin" class="result-item"></div>
+            <div id="potentialLoss" class="result-item"></div>
+            <div id="expectedValue" class="result-item"></div>
+            <div id="evPercentage" class="result-item"></div>
+            <div id="recommendation" class="result-item"></div>
+        </div>
+        <div class="explanation">
+            <h3>ðŸ§  Formel Forklaring:</h3>
+            <div class="formula">
+                EV = (Antall Shares) Ã— (Din Sannsynlighet - Polymarket Pris i dollar)
+            </div>
+            <p><strong>Hvor:</strong></p>
+            <ul>
+                <li><strong>Antall Shares:</strong> Innsats Ã· (Polymarket Pris Ã· 100)</li>
+                <li><strong>Din Sannsynlighet:</strong> 1 Ã· Edge-justerte Odds</li>
+                <li><strong>Edge-justerte Odds:</strong> Bookmaker Odds Ã· (Payout % Ã· 100)</li>
+            </ul>
+        </div>
+        <div class="warning">
+            <strong>âš ï¸ Viktig:</strong> Kalkulatoren antar at bookmaker-oddsen er \"sann\" sannsynlighet etter edge-justering.
+        </div>
+    </div>
+    <script>
+        function val(v) {
+            v = v.replace(',', '.'); // StÃ¸tt bÃ¥de , og . som desimaltegn
+            return parseFloat(v);
+        }
 
-      // Fair og market probabilitet
-      const fairProb = 1 / fairOdds;
-      const marketProb = 1 / marketOdds;
-      const edge = fairProb - marketPrice;
+        function calculateEV() {
+            // Hent inputverdier, alltid fri flyt og stille
+            const bookmakerOdds = val(document.getElementById('bookmakerOdds').value);
+            const payoutPercent = val(document.getElementById('payoutPercent').value);
+            const polymarketPriceCents = val(document.getElementById('polymarketPrice').value);
+            const betAmount = val(document.getElementById('betAmount').value);
 
-      // Shares og payouts
-      const shares = stake / marketPrice;
-      const payout = shares * 1.00;                  // vinner payout
-      const netProfit = payout - stake;              // netto gevinst per vinner
-      const loss = stake;
+            // Om noe ikke kan regnes, vis blanke resultater -- ingen varsler
+            if (!bookmakerOdds || !payoutPercent || !polymarketPriceCents || !betAmount) {
+                document.getElementById('results').style.display = 'none';
+                return;
+            }
+            // Ingen sperrer â€“ kun du mÃ¥ trykke knappen
+            const polymarketPrice = polymarketPriceCents / 100;
+            const edgeAdjustedOdds = bookmakerOdds / (payoutPercent / 100);
+            const impliedProbability = 1 / edgeAdjustedOdds;
+            const numberOfShares = betAmount / polymarketPrice;
+            const potentialWinAmount = numberOfShares * 1.00;
+            const potentialProfitAmount = potentialWinAmount - betAmount;
+            const potentialLossAmount = betAmount;
+            const expectedValue = numberOfShares * (impliedProbability - polymarketPrice);
+            const evPercentage = (expectedValue / betAmount) * 100;
 
-      // EV med fair sannsynlighet
-      const ev = (fairProb * netProfit) - ((1 - fairProb) * loss);
-      const evPct = (ev / stake) * 100;
-
-      // Kelly stake
-      const kellyFrac = (((fairOdds - 1) * fairProb) - (1 - fairProb)) / (fairOdds - 1);
-      const kellyB = Math.max(0, Math.min(kellyFrac, 0.25)) * bankroll;
-
-      let html = `<b>Fair sannsynlighet:</b> ${(fairProb * 100).toFixed(2)}%<br>`;
-      html += `<b>Marked sannsynlighet:</b> ${(marketProb * 100).toFixed(2)}%<br>`;
-      html += `<b>Edge mot marked:</b> ${(edge * 100).toFixed(2)}%<br><hr>`;
-      html += `<b>Antall shares:</b> ${shares.toFixed(2)}<br>`;
-      html += `<b>Netto gevinst om vinner:</b> $${netProfit.toFixed(2)}<br>`;
-      html += `<b>Tap om ikke vinner:</b> -$${loss.toFixed(2)}<br><hr>`;
-      html += `<b>EV:</b> $${ev.toFixed(2)} (${evPct.toFixed(2)}% av innsats)<br>`;
-
-      if(ev > 0) html += `<div class="good outcome">Positiv EV – matematisk lønnsomt over tid!</div>`;
-      else if(evPct > -3) html += `<div class="warn outcome">Nær break-even – vurder risiko og edge.</div>`;
-      else html += `<div class="danger outcome">Negativ EV – ikke lønnsomt bet!</div>`;
-
-      html += `<hr><b>Kelly anbefalt innsats:</b> $${kellyB.toFixed(2)} (${(Math.max(0,Math.min(kellyFrac,0.25))*100).toFixed(2)}% av bankroll)`;
-
-      document.getElementById('res').innerHTML = html;
-    }
-  </script>
+            document.getElementById('edgeAdjustedOdds').innerHTML = `<strong>Edge-justerte Odds:</strong> ${edgeAdjustedOdds.toFixed(3)}`;
+            document.getElementById('impliedProbability').innerHTML = `<strong>Implisitt Sannsynlighet:</strong> ${(impliedProbability * 100).toFixed(2)}%`;
+            document.getElementById('polymarketPriceDisplay').innerHTML = `<strong>Polymarket Pris:</strong> ${polymarketPriceCents}Â¢ ($${polymarketPrice.toFixed(2)})`;
+            document.getElementById('numberOfShares').innerHTML = `<strong>Antall Shares:</strong> ${numberOfShares.toFixed(1)}`;
+            document.getElementById('potentialWin').innerHTML = `<strong>Potensiell Gevinst ved Seier:</strong> $${potentialProfitAmount.toFixed(2)} (total utbetaling: $${potentialWinAmount.toFixed(2)})`;
+            document.getElementById('potentialLoss').innerHTML = `<strong>Potensiell Tap:</strong> $${potentialLossAmount.toFixed(2)}`;
+            const evElement = document.getElementById('expectedValue');
+            evElement.innerHTML = `<strong>Expected Value (EV):</strong> $${expectedValue.toFixed(2)}`;
+            if (expectedValue > 0) {
+                evElement.className = 'result-item positive';
+            } else if (expectedValue < 0) {
+                evElement.className = 'result-item negative';
+            } else {
+                evElement.className = 'result-item neutral';
+            }
+            const evPercentElement = document.getElementById('evPercentage');
+            evPercentElement.innerHTML = `<strong>EV som % av innsats:</strong> ${evPercentage.toFixed(2)}%`;
+            evPercentElement.className = expectedValue > 0 ? 'result-item positive' : 
+                                       expectedValue < 0 ? 'result-item negative' : 'result-item neutral';
+            const recommendationElement = document.getElementById('recommendation');
+            let recommendationText = '';
+            let recommendationClass = '';
+            if (expectedValue > betAmount * 0.05) {
+                recommendationText = 'ðŸŸ¢ <strong>Anbefaling:</strong> Sterkt positivt EV! Dette er et godt bet.';
+                recommendationClass = 'result-item positive';
+            } else if (expectedValue > 0) {
+                recommendationText = 'ðŸŸ¡ <strong>Anbefaling:</strong> Positivt EV, men relativt lavt. Vurder innsatsstÃ¸rrelse.';
+                recommendationClass = 'result-item neutral';
+            } else if (expectedValue > -betAmount * 0.02) {
+                recommendationText = 'ðŸŸ¡ <strong>Anbefaling:</strong> NÃ¦r break-even. Vurder om det er verdt risikoen.';
+                recommendationClass = 'result-item neutral';
+            } else {
+                recommendationText = 'ðŸ”´ <strong>Anbefaling:</strong> Negativt EV. Ikke anbefalt Ã¥ plassere dette bettet.';
+                recommendationClass = 'result-item negative';
+            }
+            recommendationElement.innerHTML = recommendationText;
+            recommendationElement.className = recommendationClass;
+            document.getElementById('results').style.display = 'block';
+        }
+    </script>
 </body>
 </html>
-
